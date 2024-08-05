@@ -7,11 +7,11 @@ const productosSchema = new mongoose.Schema({
     description: String, 
     price: { type: Number, required: true, min: 0 },
     thumbnail: String,
-    code: String,
+    code: { type: String, required: true, unique: true },
     stock: { type: Number, required: true, min: 0 },
     status: Boolean,
-    category: String
-}, { timestamps: true });
+    category: String,
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'users', default: null }}, { timestamps: true });
 
 productosSchema.plugin(paginate)
 

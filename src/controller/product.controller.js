@@ -5,6 +5,10 @@ const {generateMockProducts} = require('../utils/mocking');
 const CustomError = require('../errors/customError');
 const errorList = require('../utils/errorList');
 const logger = require('../utils/logger');
+const productService = require('../services/product.service');
+const { userModel } = require('../dao/models/users.modelo');
+const { envioMail } = require('../config/mailing.config');
+
 
 class ProductController{
     static async getAllProducts(req, res) {
@@ -40,7 +44,11 @@ class ProductController{
             const newProduct = await ProductService.addProduct(productData);
             res.status(201).json(newProduct);
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            if (error.code === 11000 && error.keyPattern && error.keyPattern.code) {
+                res.status(400).json({ error: 'El código del producto ya existe. Por favor, elige un código diferente.' });
+            } else {
+                res.status(400).json({ error: error.message });
+            }
         }
     }
 
@@ -57,10 +65,31 @@ class ProductController{
     }
 
     static async deleteProduct(req, res) {
-        const productId = req.params.id;
         try {
-            await ProductService.deleteProduct(productId);
-            res.json({ message: 'Producto eliminado exitosamente' });
+            const productId = req.params.id;
+
+            const product = await productService.getProductById(productId);
+
+            if (!product) {
+                throw new CustomError(errorList.PRODUCT_NOT_FOUND.status, errorList.PRODUCT_NOT_FOUND.code, errorList.PRODUCT_NOT_FOUND.message);
+            }
+
+            if (product.owner) {
+                const owner = await userModel.findById(product.owner);
+                if (!owner) {
+                    throw new CustomError(errorList.USER_NOT_FOUND.status, errorList.USER_NOT_FOUND.code, errorList.USER_NOT_FOUND.message);
+                }
+
+                if (owner.role === "premium") {
+                    const subject = "Producto eliminado";
+                    const message = `El producto ${product.title} ha sido eliminado por un administrador`;
+                    await envioMail(owner.email, subject, message);
+                }
+            }
+
+await ProductService.deleteProduct(productId);
+res.json({ message: 'Producto eliminado exitosamente' });
+
         } catch (error) {
             res.status(500).json({ error: error.message });
         }

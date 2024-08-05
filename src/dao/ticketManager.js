@@ -1,7 +1,7 @@
 const {modeloTickets} = require('./models/tickets.model');
 
 class TicketManager {
-    async getAllTickets() {
+     async getAllTickets() {
         try{
             const tickets = await modeloTickets.find();
             return tickets;

@@ -8,9 +8,11 @@ class CartManager {
   async addProductToCart(cartId, productId) {
     try {
         const cart = await modeloCarts.findById(cartId);
+
         if (!cart) {
             throw new Error(`Carrito no encontrado para el ID ${cartId}`);
         }
+
         const existingProduct = cart.products.find(product => product.productId.equals(productId));
 
         if (existingProduct) {
@@ -18,8 +20,8 @@ class CartManager {
         } else {
             cart.products.push({ productId, quantity: 1 });
         }
-        await cart.save();
 
+        await cart.save();
         return cart.products.find(product => product.productId.equals(productId));
     } catch (error) {
         throw new Error('Error al agregar el producto al carrito: ' + error.message);
@@ -32,10 +34,10 @@ class CartManager {
     } catch (error) {
         throw new Error('Error al obtener los carritos: ' + error.message);
     }
-  }
+}
 
 
-  async getCartById(cartId) {
+    async getCartById(cartId) {
     try {
         return await modeloCarts.findById(cartId);
     } catch (error) {
@@ -43,16 +45,16 @@ class CartManager {
     }
 }
 
-  async createCart(initialProducts = []) {
+    async createCart(initialProducts = []) {
     try {
         const newCart = await modeloCarts.create({ products: initialProducts });
         return newCart;
     } catch (error) {
         throw new Error('Error al crear el carrito: ' + error.message);
     }
-  }
+}
 
-  async removeProductFromCart(cartId, productId) {
+async removeProductFromCart(cartId, productId) {
     try {
         const cart = await modeloCarts.findById(cartId);
 

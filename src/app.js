@@ -15,8 +15,10 @@ const connectMongo = require("connect-mongo");
 const config = require("./config/config");
 const errorHandler = require('./middlewares/errorHandler');
 const logger = require('./utils/logger');
-const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const ticketRouter = require("./routes/tickets.router");
+const authenticate = require("./middlewares/auth");
 const PORT = 8080;
 
 const app = express();
@@ -29,36 +31,6 @@ app.use((req, res, next) =>{
 });
 
 app.use(errorHandler);
-
-app.use(express.json())
-app.use(express.urlencoded({extended: true}))
-app.use(session({
-    secret: "secreto",
-    resave: true,
-    saveUninitialized: true,
-    store: connectMongo.create({mongoUrl: "mongodb+srv://rocconesci344:344a2344@rocco-nesci-backend.atqrp5y.mongodb.net/?retryWrites=true&w=majority&appName=Rocco-nesci-backend"})
-}))
-
-passportConfig()
-app.use(passport.initialize())
-app.use(passport.session())
-app.use(express.static(path.join(__dirname, "public")))
-
-app.engine("handlebars", handlebars.engine({
-    runtimeOptions: {
-        allowProtoPropertiesByDefault: true,
-        allowProtoMethodsByDefault: true,
-    },
-}))
-app.set("view engine", "handlebars")
-app.set("views", path.join(__dirname, "views"))
-
-app.use("/", viewsRouter)
-app.use("/api/products", productRouter)
-app.use("/api/sessions", sessionsRouter)
-app.use("/api/carts", cartRouter)
-
-handleRealTimeProductsSocket(io);
 
 const options = {
     definition: {
@@ -74,25 +46,74 @@ const options = {
     
 const spec = swaggerJsDoc(options);
 
+
+app.use(express.json())
+app.use(express.urlencoded({extended: true}))
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(spec));
+
+app.use(session({
+    secret: "secreto",
+    resave: true,
+    saveUninitialized: true,
+    store: connectMongo.create({mongoUrl: "mongodb+srv://rocconesci344:344a2344@rocco-nesci-backend.atqrp5y.mongodb.net/?retryWrites=true&w=majority&appName=Rocco-nesci-backend"})
+}))
+
+passportConfig()
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(express.static(path.join(__dirname, "public")))
+app.engine("handlebars", handlebars.engine({
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true,
+    },
+    helpers:{
+        calculateTotal: function(cart){
+            let total = 0;
+            if (cart && cart.products){
+                for (let product of cart.products){
+                    total += product.price * product.quantity;
+                }
+            }
+            return total.toFixed(2);
+        },
+        eq: function (a, b) {
+            return a === b;
+        }
+    }
+}))
+app.set("view engine", "handlebars")
+app.set("views", path.join(__dirname, "views"))
+
+app.use(authenticate)
+app.use("/", viewsRouter)
+app.use("/api/products", productRouter)
+app.use("/api/sessions", sessionsRouter)
+app.use("/api/carts", cartRouter)
+app.use("/api/tickets", ticketRouter)
+
+handleRealTimeProductsSocket(io);
+
+
+
+
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
 server.listen(PORT, () => {
-    logger.info(`Servidor escuchando ahora en http://localhost:${PORT}`);
+    logger.info(`Servidor escuchando ahora en ${PORT}`);
     });
 
 const connect = async()=>{
     try{
-        await mongoose.connect(config.MONGO_URL,{
-            dbName: config.DB_NAME
-        })
-        logger.info("Conectado MongoDB")
+        await mongoose.connect(config.MONGO_URL)
+        logger.info("Conectado a MongoDB")
     }catch(error){
         logger.error(`Error al conectar a MongoDB: ${error.message}`)
     }
 }
+
 
 connect()

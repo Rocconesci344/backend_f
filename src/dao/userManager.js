@@ -1,3 +1,4 @@
+const { modeloCarts } = require("./models/carts.modelo");
 const { userModel } = require("./models/users.modelo");
 const bcrypt = require('bcrypt');
 
@@ -12,14 +13,20 @@ class UserManager {
         }
     }
 
-    async addUser(username, email, password, role) {
+    async addUser(username, first_name, last_name, age, email, password, role) {
         try {
             const hashedPassword = await bcrypt.hash(password, 10); 
+
+            const newCart = await modeloCarts.create({products: []});
             const newUser = await userModel.create({
                 username: username,
+                first_name: first_name,
+                last_name: last_name,
+                age: age,
                 email: email,
                 password: hashedPassword,
-                role: role
+                role: role,
+                cartId: newCart._id
             });
             return newUser;
         } catch (error) {

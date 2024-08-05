@@ -1,4 +1,3 @@
-# https://swagger.io/docs/specification/basic-structure/
 
 paths:
   /api/products/mockproducts:
